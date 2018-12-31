@@ -1,0 +1,65 @@
+version: "3"
+
+networks: 
+  app_net:
+        driver: bridge
+
+
+services:
+    blog_server:
+      image: node
+      container_name: blog_server
+      working_dir: /home/node/app
+      environment:
+        - NODE_ENV=production
+      volumes:
+        - ./App/parse/blog/server:/home/node/app
+      ports:
+        - 8088:8088
+      command: "npm start"
+      depends_on:
+        - redis
+        - mongo
+      networks:
+        - app_net 
+  
+        
+    blog_frontend:
+        image: node
+        container_name: blog_frontend
+        working_dir: /home/node/app
+        environment:
+          - NODE_ENV=production
+        volumes:
+          - ./App/parse/blog/frontend:/home/node/app
+        ports:
+          - 8080:8080
+        command: "npm start"
+        depends_on: 
+          - blog_server
+        networks:
+          - app_net    
+
+    redis:
+      image: redis
+      container_name: redis
+      ports:
+        - 6379:6379
+      volumes:
+        - ./etc/redis/rd1/conf/redis.conf:/usr/local/etc/redis/redis.conf
+        - ./etc/redis/rd1/db:/data
+      command: redis-server --appendonly yes
+      networks:
+        - app_net 
+
+    
+    mongo:
+      image: mongo
+      restart: always
+      ports: 
+        - 27017:27017
+      volumes:
+        - ./mgdata:/data/db
+        - ./mgbackup:/var/mgbackup
+      networks:
+        - app_net    
