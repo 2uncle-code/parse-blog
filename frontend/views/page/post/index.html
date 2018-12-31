@@ -1,0 +1,87 @@
+{% extends "../layout/default.html" %}
+
+{% block head_options %}
+<title> 我的博文</title>
+{{ super() }}
+{% endblock %}
+
+{% block content %}
+<div id="index">
+    <h1>我的博文</h1>
+    <div class="list-group">
+    </div>
+</div>
+<script>
+    $().ready(function () {
+        init();
+    });
+    async function init() {
+
+        let query = getClassQuery('Post')
+        query.equalTo('user', Parse.User.current());
+        const posts = await query.descending("updatedAt").find().catch((err) => {
+            handleParseError('obj', err);
+        });
+        posts.map((post) => {
+            $('.list-group').append(
+
+                '<div id="list-item-' + post.id + '"' +
+                ' class="list-group-item list-group-item-action flex-column align-items-start ">' +
+                '<div class="d-flex w-100 justify-content-between">' +
+                '<a href=' + "'" + '/post/show/' + post.id + "'" + '"' + '> <h5 class="mb-1">' + post.get('name') + '</h5></a>' +
+                '<small>创建与：' + timeStamp2String(post.createdAt) + '</small>' +
+
+                '<small>' + post.get('view') + ' 次浏览<br/>' +
+                '<a id="post-edit" href="/post/edit/' + post.id + '">修改</a>' +
+                '||<a id="post-del" href="#" onclick="postDelete(' + "'" + post.id + "'" + ');return false">删除</a>' +
+                '</small>' +
+
+
+                '</div>' +
+
+                '<p class="mb-1">' + post.get('content').substring(0, 100).replace(/<[^>]+>/g, "") + '</p>' +
+
+                '</div>'
+
+
+            )
+        });
+    }
+
+    function postDelete(id) {
+
+        swal({
+            title: '警告',
+            text: "骚年，你确定要删除这篇文章？",
+            type: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: '是的，郑意已决!'
+        }).then((result) => {
+            if (result) {
+                getObjById('Post', id).then(_post => {
+                    _post.destroy().then(_del => {
+                        Swal({
+                            position: 'top-end',
+                            type: 'success',
+                            title: '删除成功！',
+                            showConfirmButton: false,
+                            timer: 1500
+                        })
+                        $('#list-item-' + id).remove();
+                    }, er => {
+                        handleParseError('obj', er);
+                    })
+                }, er => {
+                    handleParseError('obj', er);
+                })
+            }
+        })
+
+
+
+    }
+
+</script>
+{% endblock %}

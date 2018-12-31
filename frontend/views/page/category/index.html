@@ -1,0 +1,63 @@
+{% extends "../layout/default.html" %}
+
+{% block head_options %}
+<title> </title>
+{{ super() }}
+{% endblock %}
+
+{% block content %}
+<div id="index">
+    <h1 id="head-title"></h1>
+    <div class="list-group">
+    </div>
+</div>
+<script>
+    $().ready(function () {
+        init();
+    });
+    async function init() {
+
+        let query = getClassQuery('Post');
+        let category = await getObjById('Category', getQueryVariable('id'));
+
+        query.equalTo('category', category);
+        $(document).attr('title', category.get('name'))
+        $('#head-title').text(category.get('name'))
+        const posts = await query.descending("createdAt").find().catch((err) => {
+            handleParseError('obj',err);
+        });
+        posts.map(async(post) => {
+            let user = post.get('user');
+            await user.fetch();
+            $('.list-group').append(
+
+                '<div onclick="location.href=' + "'" + '/post/show/' + post.id + "'" + '"' +
+                ' class="list-group-item list-group-item-action flex-column align-items-start ">' +
+                '<div class="d-flex w-100 justify-content-between">' +
+                ' <h5 class="mb-1">' + post.get('name') + '</h5>' +
+                '<small>创建与：' + timeStamp2String(post.createdAt) + '</small>' +
+
+                '<small>' + post.get('view') + ' 次浏览<br/>' +
+
+                '</small>' +
+
+
+                '</div>' +
+
+                '<p class="mb-1">' + post.get('content').substring(0, 100).replace(/<[^>]+>/g, "") + '</p>' +
+                '作者：' + user.get('username') || user.get('nickname') +
+                '</div>'
+
+
+            )
+        });
+
+
+
+
+    }
+
+
+
+</script>
+{% endblock %}

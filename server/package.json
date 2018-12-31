@@ -1,0 +1,39 @@
+{
+  "name": "parseblog",
+  "version": "1.0.0",
+  "description": "2uncle community blog",
+  "main": "index.js",
+  "keywords": [
+    "parse",
+    "server"
+  ],
+  "author": "Mark",
+  "license": "MIT",
+  "dependencies": {
+    "connect-redis": "^3.3.3",
+    "dompurify": "^1.0.8",
+    "dotenv": "^4.0.0",
+    "express": "^4.16.3",
+    "jsdom": "^13.1.0",
+    "parse-server": "3.1.2",
+    "parsesmtp": "^1.0.3",
+    "validator": "^10.5.0"
+  },
+  "devDependencies": {
+    "babel-loader": "^7.0.4",
+    "babel-cli": "^6.6.5",
+    "babel-core": "^6.26.3",
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "supervisor": "0.12.0"
+  },
+  "scripts": {
+    "start": "npm i && npm run copy && node bin",
+    "dev": "npm run build & supervisor bin",
+    "build": "babel -w app/ -d bin/ --copy-files",
+    "copy": "babel  app/ -d bin/ --copy-files"
+  },
+  "engines": {
+    "node": ">=4.3"
+  }
+}

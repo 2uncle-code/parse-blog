@@ -1,0 +1,91 @@
+{% extends "./layout/default.html" %}
+
+{% block head_options %}
+
+
+{{ super() }}
+{% endblock %}
+
+{% block content %}
+<div id="index" class="list-group">
+
+</div>
+<script>
+
+    $().ready(function () {
+        let skip = 0;
+        let tab=getQueryVariable('tab')
+
+
+        $('#index').dropload({
+            scrollArea: window,
+            autoLoad:true,
+            loadDownFn: me=> {
+                init(me,tab);
+                
+
+
+
+
+            }
+        });
+
+
+        async function init(me,tab){
+                tab=!tab?'updatedAt':'createdAt';
+                let query =getClassQuery('Post');
+                const posts = await query.descending(tab).skip(skip).limit(5).find().catch((err) => {
+                    handleParseError('obj',err);
+                });
+
+                
+                if (posts.length > 0) {
+                    skip += 5;
+                    posts.map(async (post) => {
+
+                        let user = post.get('user');
+                        await user.fetch();
+                        $('#index').append(
+                            '<a href="/post/show/' + post.id + '"' +
+                            ' class="list-group-item list-group-item-action flex-column align-items-start ">' +
+                            '<div class="d-flex w-100 justify-content-between">' +
+                            ' <h5 class="mb-1">' + post.get('name') + '</h5>' +
+                            '<small>' + timeStamp2String(post.createdAt) + '</small>' +
+                            '<small>' + post.get('view') + ' 次浏览</small>' +
+                            '</div>' +
+                            '<p class="mb-1">' + post.get('content').substring(0, 100).replace(/<[^>]+>/g, "") + '</p>' +
+                            '作者：' + user.get('username') || user.get('nickname') +
+                            '</a>'
+
+
+                        )
+                        
+
+                    });
+                } else {
+                    // 锁定
+                    me.lock();
+                    // 无数据
+                    me.noData();
+                    
+                }
+                
+                me.resetload();
+
+
+
+
+            }
+
+
+
+
+
+
+    });
+
+
+
+
+</script>
+{% endblock %}

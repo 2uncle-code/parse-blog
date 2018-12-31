@@ -1,0 +1,206 @@
+{% extends "../layout/default.html" %}
+
+{% block head_options %}
+<title> {{"编辑" if id else "新建" }}博文</title>
+
+{{ super() }}
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <form id="create-form" class="col">
+        <h1>{{"编辑" if id else "新建" }}博文</h1>
+
+        <div class="form-group">
+            <label>标题</label>
+            <input type="text" class="form-control" id="post-name" name="post-name" placeholder="标题">
+        </div>
+
+        <div class="form-group">
+            <label>分类</label>
+            <select class="custom-select">
+
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>正文</label>
+            <textarea id="editor">Hello,from 2uncle!</textarea>
+        </div>
+
+        <input type="submit" class="btn btn-primary" id="btn-publish" value="发布"></input>
+</form>
+
+</div>
+</div>
+<style>
+
+</style>
+<script src="/public/js/ckeditor/ckeditor.js"></script>
+<script>
+
+
+
+    $().ready(() => {
+        let ID = '{{id}}';
+        CKEDITOR.replace('editor');
+        initCategory();
+
+        if (ID) {
+            getObjById('Post', ID).then(async (_post) => {
+                let _category = _post.get('category');
+                await _category.fetch().then(r => {
+                    $('.custom-select').val(r.id);
+                    $('#post-name').val(_post.get('name'));
+                    if (CKEDITOR.status == 'loaded') {
+                        CKEDITOR.instances.editor.setData(_post.get('content'))
+                    }
+                    else {
+                        CKEDITOR.on("instanceReady", function (event) {
+                            CKEDITOR.instances.editor.setData(data);
+                        });
+                    }
+                })
+
+
+            }, (error) => {
+                handleParseError('obj',error);
+            })
+        }
+
+
+        $("#create-form").validate({
+            onsubmit: true,// 是否在提交时验证
+
+            rules: {
+                'post-name': {
+                    required: true,
+                    minlength: 5
+                }
+            },
+            submitHandler: function () {
+                if (ID) {
+                    editPost(ID);
+                } else {
+                    createPost();
+                }
+
+
+            }
+        })
+
+
+
+    })
+
+    async function createPost() {
+        try {
+            let name = $('#post-name').val();
+            let content = CKEDITOR.instances.editor.getData();
+            const Post = Parse.Object.extend("Post");
+            const _post = new Post();
+            _post.set('name', name);
+            _post.set('content', DOMPurify.sanitize(content));
+            _post.set('published', true);
+            _post.set('user', Parse.User.current());
+            _post.set('view', 0);
+            const Category = Parse.Object.extend("Category");
+            let category = new Category();
+            category.id = $('.custom-select').val();
+            _post.set('category', category);
+            _post.save().then((post) => {
+                category.increment('count');
+                category.save();
+                swal({
+                    title: '发布成功',
+                    text: "骚年，要不要再写一篇看看？",
+                    type: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: '好, 再写一篇!'
+                }).then((result) => {
+                    if (result.value) {
+                        location.href = '/post/create';
+
+                    } else {
+                        location.href = '/post/index';
+                    }
+                })
+
+            }, (error) => {
+
+                handleParseError('obj',error);
+            });
+        } catch (err) {
+            handleParseError('obj',err);
+        }
+
+    }
+
+    async function editPost(ID) {
+        try {
+
+            getObjById('Post', ID).then(async (_post) => {
+                let name = $('#post-name').val();
+                let content = CKEDITOR.instances.editor.getData();
+                _post.set('name', name);
+                _post.set('content', DOMPurify.sanitize(content));
+                _post.set('published', true);
+                const Category = Parse.Object.extend("Category");
+
+                let _category = _post.get('category');
+                await _category.fetch();
+                if (_category.id !== $('.custom-select').val()) {
+                    let _cate = new Category();
+                    _cate.id = $('.custom-select').val();
+                    _post.set('category', _cate);
+                }
+                _post.save().then((post) => {
+                    swal({
+                        title: '修改成功',
+                        text: "骚年，要不要再写一篇看看？",
+                        type: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: '好, 再写一篇!'
+                    }).then((result) => {
+                        if (result.value) {
+                            location.href = '/post/create';
+
+                        } else {
+                            location.href = '/post/index';
+                        }
+                    })
+                }, (err) => {
+                    handleParseError('obj',err);
+                });
+
+            }, (error) => {
+                handleParseError('obj',error);
+            })
+
+
+        } catch (err) {
+            handleParseError('obj',err);
+        }
+    }
+
+    async function initCategory() {
+
+        let categories = await getClassQuery('Category').find().catch((err) => {
+            handleParseError('obj',err);
+        });
+        categories.map((_category) => {
+            $('.custom-select').append(
+                ' <option value="' + _category.id + '">' + _category.get('name') + '</option>'
+            )
+        })
+
+    }
+
+
+</script>
+
+{% endblock %}

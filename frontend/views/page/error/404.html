@@ -1,0 +1,20 @@
+{% extends "../layout/default.html" %}
+
+{% block head_options %}
+<title> 欢迎来到parse server中文网，领先的企业级私有云解决方案--404</title>
+{{ super() }}
+{% endblock %}
+
+{% block content %}
+<div id="index">
+    <h1 id="head-title" style="font-style:italic">404</h1>
+    <div class="list-group">
+        <h2 style="font-style:italic">老弟，这个页面真没有！</h2>
+        <a href="/" class="btn btn-primary">要不咱回到首页</a>
+        <button onclick="history.go(-1)" class="btn btn-success">或者回到上一个页面?</button>
+    </div>
+</div>
+<script>
+    
+</script>
+{% endblock %}

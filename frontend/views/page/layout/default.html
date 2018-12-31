@@ -1,0 +1,224 @@
+<html>
+
+<head>
+
+  {% block head_options %}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+    crossorigin="anonymous">
+  <link rel="stylesheet" href="/public/js/dropdown/dropdown.css">
+  <link rel="stylesheet" href="/public/fonts/font-awesome/css/font-awesome.min.css">
+  {% endblock %}
+  <title> 欢迎来到parse server中文网，领先的企业级私有云解决方案</title>
+</head>
+
+<body>
+  <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light ">
+      <a class="navbar-brand" href="/">Parse Server</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto ">
+          <li class="nav-item ">
+            <a class="nav-link" href="/">首页 </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/?tab=new">最新</a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true"
+              aria-expanded="false">文档</a>
+            <div class="dropdown-menu" id="menu-category">
+            </div>
+          </li>
+          <li class="nav-item">
+            <form class="form-inline my-2 my-lg-0" id="search-form">
+              <input id="txt-search" class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+              <ul id="search-ul"></ul>
+            </form>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown"
+              aria-haspopup="true" aria-expanded="false">
+              登录
+            </a>
+            <div class="dropdown-menu" id="dropdown-menu" aria-labelledby="navbarDropdown">
+
+            </div>
+          </li>
+
+        </ul>
+
+      </div>
+    </nav>
+
+
+
+
+
+
+
+    <script src="/public/js/parse.min.js"></script>
+    <script src="/public/js/common.js"></script>
+    <script src="/public/js/jquery.slim.min.js" ></script>
+    <script src="/public/js/popper.min.js" ></script>
+    <script src="/public/js/bootstrap.min.js" ></script>
+    <script src="/public/js/sweetalert2.all.min.js"></script>
+    <script src="/public/js/jquery.validate.min.js"></script>
+    <script src="http://static.runoob.com/assets/jquery-validation-1.14.0/dist/localization/messages_zh.js"></script>
+
+    <!-- <script src="https://ssl.captcha.qq.com/TCaptcha.js"></script> -->
+    <script>
+
+      Parse.initialize('{{appKey}}');
+      Parse.serverURL = '{{serverURL}}';
+      
+      changeMenu();
+      initCategory();
+      //search();
+      $("#btn-login").click(function login() {
+        let username = $("#username").val();
+        let pwd = $("#password").val();
+
+
+        Parse.User.logIn(username, pwd).then((user) => {
+
+          location.href = '/dashboard';
+        }).catch((err) => {
+          handleParseError('user',err);
+        })
+
+
+      });
+
+      $("#logout").click(function () {
+        Parse.User.logOut();
+        changeMenu();
+      });
+
+      function changeMenu() {
+        let user = Parse.User.current();
+        if (user) {
+
+
+          $('#navbarDropdown').text('你好,' + user.get('username'));
+          $('#dropdown-menu').html('<div id="logined" >' +
+            '<ul>' +
+            '<li><a href="/post/create">写一篇</a></li>' +
+            '<li><a href="/post/index">我的博文</a></li>' +
+            '<li><a href="/dashboard">控制面板</a></li>' +
+            '<li><a href="" id="logout">退出</a></li>' +
+            '</ul></div>');
+        } else {
+
+          $('#navbarDropdown').text('登录');
+          $('#dropdown-menu').html('<div class="px-4 py-3">' +
+            '<div class="form-group">' +
+            ' <label for="exampleDropdownFormEmail1">用户名/邮箱</label>' +
+            '<input type="text" class="form-control" id="username" placeholder="用户名/邮箱"></div>' +
+
+            '<div class="form-group">' +
+            ' <label for="exampleDropdownFormPassword1">密码</label>' +
+            ' <input type="password" class="form-control" id="password" placeholder="Password"></div>' +
+            '<button type="submit" class="btn btn-primary" id="btn-login">登陆</button></div>' +
+
+            '<div class="dropdown-divider"></div>' +
+            '<a class="dropdown-item" href="/register">极速注册</a>' +
+            '<a class="dropdown-item" href="#" onclick="forgetPwd()">忘记密码了吗？真的忘记了?</a>')
+
+
+        }
+
+      }
+
+      forgetPwd = async () => {
+        const { value: email } = await Swal({
+          title: '找回密码',
+          input: 'email',
+          inputPlaceholder: '请输入你的邮箱'
+        })
+
+        if (email) {
+          const isEmailValid = await Parse.Cloud.run("checkEmail", { 'email': email });
+          if (isEmailValid) {
+            Parse.User.requestPasswordReset(email)
+              .then(() => {
+                Swal({
+                  type: 'success',
+                  title: '重置密码',
+                  text: '已经把邮件发送到你指定的邮箱了，赶紧的吧!'
+                })
+              }).catch((error) => {
+                handleParseError('user',error);
+              });
+          } else {
+            Swal({
+              type: 'error',
+              title: 'Oops...',
+              text: '好像邮箱没填对吧!'
+            })
+          }
+        }
+      }
+
+    async  function  initCategory(){
+        const categories=await getClassQuery('Category').find().catch((err) => {
+            handleParseError('obj',err);
+        });
+        
+        categories.map(_category=>{
+            $('#menu-category').append(
+             ' <a class="dropdown-item" href=/category?id='+_category.id+'>'+_category.get('name')+'</a>'
+            )
+        });
+      }
+
+      function search() {
+        $('#txt-search').on('input', e => {
+          const _searcher = e.delegateTarget.value;
+          if (!_searcher) return;
+          let Post = Parse.Object.extend('Post');
+          let query = new Parse.Query(Post);
+          query.fullText('name', _searcher);
+          query.fullText('content', _searcher);
+          query.find().then((objs) => {
+            $('#search-ul').empty();
+            console.log(objs);
+            let ul = $('#search-ul');
+            objs.map(obj => {
+
+              ul.append('<li class="list-group-item">' + obj.get('name') + '</li>');
+            })
+          }, err => {
+            handleParseError('obj',err);
+          })
+        })
+
+      }
+
+    </script>
+    <script src="/public/js/dropdown/dropdown.js"></script>
+    <script src="/public/js/rules.js"></script>
+    <script src="/public/js/errorTrans.js"></script>
+    <script src="/public/js/handleParseError.js"></script>
+    <script src="/public/js/handleTime.js"></script>
+    <script src="/public/js/purify.js"></script>
+    
+    {% block content %}
+    {% endblock %}
+  </div>
+  <style>
+    .error {
+      color: red;
+    }
+  </style>
+  <div style=" position:fixed; right:50px; bottom:10px; width:60px; height:50px; background-color:#CCC; cursor:pointer"><a
+      href="#">回到顶部</a></div>
+</body>
+
+</html>

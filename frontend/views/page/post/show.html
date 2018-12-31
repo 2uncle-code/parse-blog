@@ -1,0 +1,130 @@
+{% extends "../layout/default.html" %}
+
+{% block head_options %}
+<title> </title>
+{{ super() }}
+{% endblock %}
+
+{% block content %}
+<div id="show">
+
+</div>
+<script src="/public/js/ckeditor/ckeditor.js"></script>
+<script>
+    let ID = '{{id}}';
+    $().ready(function () {
+        init();
+    });
+    function init() {
+
+        const action = Parse.User.current() ? '<button id="btn-comment" class="btn btn-primary">提交</button>' : '<label>请登陆后评论</label>'
+        getObjById('Post', ID).then(async _post => {
+            $('#show').append('<h1 class="post-title">' + _post.get('name') +
+                '</h1>' +
+                '<p id="content-' + _post.id + '">' + '</p>' +
+                '<div class="list-group"></div>' +
+                '<form id="comment" ><div class="page-header"><h2 >有话好说：</h2></div>' +
+                '<i style="font-size: 48px;" class="fa fa-user-circle" aria-hidden="true"></i>' +
+                '<textarea id="editor"></textarea>' + action + '</form>'
+
+
+            );
+            const comments = await getClassQuery('Comment').equalTo('post', _post).find().catch((err) => {
+                handleParseError('obj',err);
+            });
+
+            comments.map( _comment => {
+                appendComment(_comment)
+            })
+            $('#content-' + _post.id).html(DOMPurify.sanitize(_post.get('content')));
+            CKEDITOR.replace('editor', {
+
+                height: '15em',
+                toolbarGroups: [
+                    { name: 'links' },
+                    { name: 'insert' },
+                    { name: 'forms' },
+                    { name: 'tools' },]
+            });
+            $(document).attr('title', _post.get('name'))
+            await Parse.Cloud.run("postView", { postId: ID });//增加一次浏览量
+
+            $("#comment").validate({
+                onsubmit: true,// 是否在提交时验证
+
+                rules: {
+                    'editor': {
+                        required: true,
+                        minlength: 8
+                    }
+                },
+                submitHandler: function () {
+                    const content = CKEDITOR.instances.editor.getData();
+                    if (content.length < 10) {
+                        Swal({
+                            title: '要爪子？!',
+                            text: 'Please,多写几个字啥！',
+                            type: 'error',
+                            confirmButtonText: '好嘛'
+                        })
+                        return
+                    }
+                    let comment = getClassObj('Comment');
+                    let reply_to = []
+                    Array.from(new Set(content.match(/@\w+/g)))
+                        .filter(async _r => {
+                            const res = await Parse.Cloud.run("checkUserName", { 'username': _r.substring(1) });
+                            if (res) reply_to.push(_r.substring(1))
+                            return
+                        }) || [];
+
+                    comment.set('post', _post);
+                    comment.set('content',DOMPurify.sanitize(content));
+                    comment.set('user', Parse.User.current());
+                    comment.set('reply_to', reply_to);
+                    comment.save().then(_comment => {
+                        appendComment(_comment)
+                        CKEDITOR.instances.editor.setData('')
+                        Swal({
+                        position: 'top-end',
+                        type: 'success',
+                        title: '评论成功！',
+                        showConfirmButton: false,
+                        timer: 1500
+                    })
+                    }).catch(error=>{
+                        handleParseError('obj',error);
+                    })
+
+
+                }
+            })
+
+
+        }, (error) => {
+            handleParseError('obj',error);
+        });
+    }
+
+    function reply(user) {
+        CKEDITOR.instances.editor.insertText('  @' + user + '  ')
+    }
+
+   async function appendComment(_comment) {
+        const user = _comment.get('user');
+        await user.fetch();
+
+        $('.list-group').append(
+            '<div  class="list-group-item list-group-item-action flex-column align-items-start ">' +
+            '<div class="d-flex w-100 justify-content-between">' +
+            '<i style="font-size: 48px;" class="fa fa-user-circle" aria-hidden="true">' + user.get('username') + '</i>' +
+
+            '<small onclick="reply(' + "'" + user.get('username') + "'" + ')">回复</small>' +
+            '</div>  <p class="mb-1">' + _comment.get('content') + '</p>' +
+            '</div>'
+
+
+        )
+    }
+</script>
+{% endblock %}
